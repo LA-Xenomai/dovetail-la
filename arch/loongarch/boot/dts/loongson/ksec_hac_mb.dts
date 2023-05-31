@@ -1,0 +1,163 @@
+#include "loongson2k1000.dtsi"
+#include "loongson_panel_param.dtsi"
+
+/ {
+	model = "LS2K1000LA";
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs = "earlycon";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		fb_memory: framebuffer {
+			compatible = "shared-dma-pool";
+			no-map;
+			reg = <0 0x0b000000 0 0x04000000>; /* 64M */
+		};
+
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0 0x2000000>;
+			linux,cma-default;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		BOOT {
+			label = "led1";
+			gpios = <&pioA 21 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		SYSTEM {
+			label = "led2";
+			gpios = <&pioA 22 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		RUN {
+			label = "led3";
+			gpios = <&pioA 23 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+			default-state = "on";
+		};
+	};
+};
+
+&spi0 {
+	status = "okay";
+
+	spi-flash@0 {
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <30000000>;
+		reg = <0>; /* CS0 */
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "u-boot";
+				reg = <0x0000000 0x100000>;
+				read-only;
+			};
+		};
+	};
+};
+
+&i2c0 {
+	status = "okay";
+
+	lm75a@48 {
+		compatible = "national,lm75a";
+		reg = <0x48>;
+	};
+
+	eeprom@50 {
+		compatible = "atmel,24c16";
+		reg = <0x50>;
+		pagesize = <16>;
+	};
+};
+
+&i2c1 {
+	status = "okay";
+
+	rtc@68 {
+		compatible = "dallas,ds1339";
+		reg = <0x68>;
+	};
+};
+
+&sata {
+	status = "okay";
+
+	pinctrl-0 = <&ahci_default>;
+	pinctrl-names = "default";
+	ports-implemented = <0x1>;
+};
+
+&gmac0 {
+	status = "okay";
+};
+
+&gmac1 {
+	status = "okay";
+};
+
+&uart3 {
+	status = "okay";
+};
+
+&uart4 {
+	status = "okay";
+};
+
+&uart5 {
+	status = "okay";
+};
+
+&nand {
+	status = "okay";
+
+	nand-cs = <0>;
+	number-of-parts = <0x2>;
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		partition@0 {
+			label = "kernel";
+			reg = <0x0000000 0xe00000>;
+		};
+
+		partition@1 {
+			label = "root";
+			reg = <0x00e00000 0x0>;
+		};
+	};
+};
+
+&can0 {
+	status = "okay";
+
+	clocks = <&clks CLK_CAN>;
+	net,tx_queue_len = <1024>;
+};
+
+&can1 {
+	status = "okay";
+
+	clocks = <&clks CLK_CAN>;
+	net,tx_queue_len = <1024>;
+};

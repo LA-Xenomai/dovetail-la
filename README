@@ -1,0 +1,117 @@
+Linux kernel
+============
+
+There are several guides for kernel developers and users. These guides can
+be rendered in a number of formats, like HTML and PDF. Please read
+Documentation/admin-guide/README.rst first.
+
+In order to build the documentation, use ``make htmldocs`` or
+``make pdfdocs``.  The formatted documentation can also be read online at:
+
+    https://www.kernel.org/doc/html/latest/
+
+There are various text files in the Documentation/ subdirectory,
+several of them using the Restructured Text markup notation.
+
+Please read the Documentation/process/changes.rst file, as it contains the
+requirements for building and running the kernel, and information about
+the problems which may result by upgrading your kernel.
+
+
+[    0.000000] Primary instruction cache 0kB, direct mapped, VIPT, linesize 1 bytes.
+[    0.000000] Primary data cache 0kB, direct mapped, VIPT, no aliases, linesize 1 bytes
+[    0.000000] Unified victim cache 0kB direct mapped, linesize 1 bytes.
+[    0.000000] Unified secondary cache 0kB direct mapped, linesize 1 bytes.
+[    0.000000] 64-bit Loongson Processor probed (LA264 Core)
+[    0.000000] CPU0 revision is: 0014a000 (Loongson-64bit)
+[    0.000000] FPU0 revision is: 00000000
+[    0.000000] cmdline:console=ttyS2,115200 root=ubi0:rootfs noinitrd init=/linuxrc rootfstype=ubifs rw
+[    0.000000] BPI1001 with boot flags 2.
+[    0.000000] convert legacy mem map to new mem map.
+[    0.000000] SMBIOS 3.0 present.
+[    0.000000] DMI: Loongson LS2K500/LS2K500-MINI-DP, BIOS 2022.04-geba9c536 04/01/2022
+[    0.000000] CpuClock = 0
+[    0.000000] The BIOS Version: 2022.04-geba9c536
+[    0.000000] Reserved memory: created CMA memory pool at 0x0000000006000000, size 32 MiB
+[    0.000000] OF: reserved mem: initialized node linux,cma, compatible id shared-dma-pool
+[    0.000000] Reserved memory: created DMA memory pool at 0x000000000b000000, size 32 MiB
+[    0.000000] OF: reserved mem: initialized node framebuffer, compatible id shared-dma-pool
+[    0.000000] earlycon: ns16550a0 at MMIO 0x000000001ff40800 (options '115200n8')
+[    0.000000] printk: bootconsole [ns16550a0] enabled
+[    0.000000]  - disabling initrd
+[    0.000000] start_pfn=0x80, end_pfn=0x28000, num_physpages:0x7b80
+[    0.000000] Wasting 8192 bytes for tracking 128 unused pages
+[    0.000000] software IO TLB: mapped [mem 0x0000000000de0000-0x0000000004de0000] (64MB)
+[    0.000000] Zone ranges:
+[    0.000000]   DMA32    [mem 0x0000000000200000-0x00000000ffffffff]
+[    0.000000]   Normal   empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000200000-0x000000000affffff]
+[    0.000000]   node   0: [mem 0x000000000d000000-0x000000000effffff]
+[    0.000000]   node   0: [mem 0x0000000090000000-0x000000009fffffff]
+[    0.000000] Zeroed struct page in unavailable ranges: 3200 pages
+[    0.000000] Initmem setup node 0 [mem 0x0000000000200000-0x000000009fffffff]
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 29452
+[    0.000000] Kernel command line: earlycon console=ttyS2,115200 root=ubi0:rootfs noinitrd init=/linuxrc rootfstype=ubifs rw fbcon=logo-pos:center fbcon=logo-count:1
+[    0.000000] Dentry cache hash table entries: 65536 (order: 5, 524288 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 4, 262144 bytes, linear)
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] Memory: 328256K/473088K available (6797K kernel code, 2268K rwdata, 1948K rodata, 416K init, 694K bss, 112064K reserved, 32768K cma-reserved)
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] rcu: Preemptible hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] 	Trampoline variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+[    0.000000] NR_IRQS: 576, nr_irqs: 576, preallocated irqs: 16
+[    0.000000] random: get_random_bytes called from start_kernel+0x358/0x4ec with crng_init=0
+[    0.000000] Constant clock event device register
+[    0.000000] clocksource: Constant: mask: 0xffffffffffffffff max_cycles: 0x171024e7e0, max_idle_ns: 440795205315 ns
+[    0.000060] sched_clock: 64 bits at 100MHz, resolution 10ns, wraps every 4398046511100ns
+[    0.000269] Constant clock source device register
+[    0.002157] Console: colour dummy device 80x25
+[    0.004531] Calibrating delay loop (skipped), value calculated using timer frequency.. 200.00 BogoMIPS (lpj=400000)
+[    0.004841] pid_max: default: 32768 minimum: 301
+[    0.005517] Mount-cache hash table entries: 2048 (order: 0, 16384 bytes, linear)
+[    0.005700] Mountpoint-cache hash table entries: 2048 (order: 0, 16384 bytes, linear)
+[    0.022209] rcu: Hierarchical SRCU implementation.
+[    0.026780] devtmpfs: initialized
+[    0.036197] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+[    0.036487] futex hash table entries: 256 (order: -2, 6144 bytes, linear)
+[    0.037382] pinctrl core: initialized pinctrl subsystem
+[    0.039648] NET: Registered protocol family 16
+[    0.044738] thermal_sys: Registered thermal governor 'step_wise'
+[    0.077449] HugeTLB registered 32.0 MiB page size, pre-allocated 0 pages
+[    0.372220] ACPI: Interpreter disabled.
+[    0.372763] ls_apbdma 1fe10c00.dma: Loongson APB DMA Controller ( slave ), 1 channels
+[    0.373969] ls_apbdma 1fe10c10.dma: Loongson APB DMA Controller ( slave ), 1 channels
+[    0.374562] ls_apbdma 1fe10c20.dma: Loongson APB DMA Controller ( slave ), 1 channels
+[    0.374931] ls_apbdma 1fe10c30.dma: Loongson APB DMA Controller ( slave ), 1 channels
+[    0.375698] vgaarb: loaded
+[    0.377254] pps_core: LinuxPPS API ver. 1 registered
+[    0.377389] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.377727] PTP clock support registered
+[    0.382874] clocksource: Switched to clocksource Constant
+[    0.383577] VFS: Disk quotas dquot_6.6.0
+[    0.383792] VFS: Dquot-cache hash table entries: 2048 (order 0, 16384 bytes)
+[    0.384791] FS-Cache: Loaded
+[    0.385291] pnp: PnP ACPI: disabled
+[    0.396220] NET: Registered protocol family 2
+[    0.399690] tcp_listen_portaddr_hash hash table entries: 1024 (order: 0, 16384 bytes, linear)
+[    0.399952] TCP established hash table entries: 4096 (order: 1, 32768 bytes, linear)
+[    0.400170] TCP bind hash table entries: 4096 (order: 1, 32768 bytes, linear)
+[    0.400412] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.401160] UDP hash table entries: 512 (order: 0, 16384 bytes, linear)
+[    0.401418] UDP-Lite hash table entries: 512 (order: 0, 16384 bytes, linear)
+[    0.402516] NET: Registered protocol family 1
+[    0.402882] PCI: CLS 0 bytes, default 0
+[    0.406552] workingset: timestamp_bits=46 max_order=15 bucket_order=0
+[    0.416240] io scheduler mq-deadline registered
+[    0.416421] io scheduler kyber registered
+[    0.416840] io scheduler bfq registered
+[    0.418888] pinctrl-single 1fe10490.pinmux: 640 pins, size 80
+[    0.428313] Serial: 8250/16550 driver, 16 ports, IRQ sharing enabled
+[    0.439526] 1ff40000.serial: ttyS0 at MMIO 0x1ff40000 (irq = 16, base_baud = 970) is a 16550A
+[    0.441122] 1ff40400.serial: ttyS1 at MMIO 0x1ff40400 (irq = 17, base_baud = 970) is a 16550A
+[    0.442221] 1ff40800.serial: ttyS2 at MMIO 0x1ff40800 (irq = 18, base_baud = 970) is a 16550A
+
