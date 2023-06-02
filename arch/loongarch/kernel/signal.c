@@ -637,6 +637,9 @@ static void do_signal(struct pt_regs *regs)
 asmlinkage void do_notify_resume(struct pt_regs *regs, void *unused,
 	__u32 thread_info_flags)
 {
+#ifdef CONFIG_IRQ_PIPELINE
+	bool stalled = irqs_disabled();
+#endif
 	local_irq_enable();
 
 	user_exit();
@@ -655,6 +658,10 @@ asmlinkage void do_notify_resume(struct pt_regs *regs, void *unused,
 	}
 
 	user_enter();
+#ifdef CONFIG_IRQ_PIPELINE
+	if (IS_ENABLED(CONFIG_IRQ_PIPELINE) && stalled)
+		local_irq_disable();
+#endif
 }
 
 static int signal_setup(void)

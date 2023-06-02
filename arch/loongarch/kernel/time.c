@@ -44,7 +44,7 @@ irqreturn_t constant_timer_interrupt(int irq, void *data)
 	/* Clear Timer Interrupt */
 	write_csr_tintclear(CSR_TINTCLR_TI);
 	cd = &per_cpu(constant_clockevent_device, cpu);
-	cd->event_handler(cd);
+	clockevents_handle_event(cd);
 
 	return IRQ_HANDLED;
 }
@@ -149,7 +149,7 @@ int constant_clockevent_init(void)
 	cd = &per_cpu(constant_clockevent_device, cpu);
 
 	cd->name = "Constant";
-	cd->features = CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_PERCPU;
+	cd->features = CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_PERCPU | CLOCK_EVT_FEAT_PIPELINE;
 
 	cd->irq = irq;
 	cd->rating = 320;

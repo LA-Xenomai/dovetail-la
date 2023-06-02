@@ -99,7 +99,7 @@ static inline void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *
 
 #define switch_mm_irqs_off switch_mm_irqs_off
 
-static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+static inline void do_switch_mm(struct mm_struct *prev, struct mm_struct *next,
 			     struct task_struct *tsk)
 {
 	unsigned long flags;
@@ -117,8 +117,27 @@ static inline void destroy_context(struct mm_struct *mm)
 {
 }
 
-#define activate_mm(prev, next)	switch_mm(prev, next, current)
+static inline void
+switch_mm(struct mm_struct *prev, struct mm_struct *next,
+	  struct task_struct *tsk)
+{
+	unsigned long flags;
+
+	protect_inband_mm(flags);
+	do_switch_mm(prev, next, tsk);
+	unprotect_inband_mm(flags);
+}
+
+#define activate_mm(prev, next)	do_switch_mm(prev, next, current)
 #define deactivate_mm(task, mm)	do { } while (0)
+
+static inline void
+switch_oob_mm(struct mm_struct *prev, struct mm_struct *next,
+	      struct task_struct *tsk)
+{
+	do_switch_mm(prev, next, tsk);
+}
+
 
 /*
  * If mm is currently active, we can't really drop it.

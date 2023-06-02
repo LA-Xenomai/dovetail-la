@@ -7,6 +7,7 @@
 
 #include <asm/page.h>
 #include <asm/thread_info.h>
+// #include <asm/irqflags.h>
 #include <uapi/asm/ptrace.h>
 
 /*
@@ -32,7 +33,7 @@ struct pt_regs {
 
 static inline int regs_irqs_disabled(struct pt_regs *regs)
 {
-	return arch_irqs_disabled_flags(regs->csr_prmd);
+	return !(regs->csr_prmd & CSR_CRMD_IE);
 }
 
 static inline unsigned long kernel_stack_pointer(struct pt_regs *regs)

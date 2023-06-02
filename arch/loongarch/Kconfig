@@ -101,6 +101,8 @@ config LOONGARCH
 	select HAVE_MEMBLOCK
 	select HAVE_MEMBLOCK_NODE_MAP
 	select HAVE_MOD_ARCH_SPECIFIC
+	select HAVE_IRQ_PIPELINE
+	select HAVE_DOVETAIL	
 	select HAVE_NMI
 	select HAVE_PERF_EVENTS
 	select HAVE_PERF_REGS
@@ -649,6 +651,7 @@ config NR_CPUS
 	  power of two.
 
 source "kernel/Kconfig.hz"
+source "kernel/Kconfig.dovetail"
 
 config KEXEC
 	bool "Kexec system call"

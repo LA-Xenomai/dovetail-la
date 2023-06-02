@@ -12,6 +12,7 @@
 
 #ifndef __ASSEMBLY__
 
+#include <dovetail/thread_info.h>
 #include <asm/processor.h>
 
 /*
@@ -24,11 +25,13 @@
 struct thread_info {
 	struct task_struct	*task;		/* main task structure */
 	unsigned long		flags;		/* low level flags */
+	unsigned long		local_flags;	/* local (synchronous) flags */
 	unsigned long		tp_value;	/* thread pointer */
 	__u32			cpu;		/* current CPU */
 	int			preempt_count;	/* 0 => preemptible, <0 => BUG */
 	struct pt_regs		*regs;
 	long			syscall;	/* syscall number */
+	struct oob_thread_state	oob_state;
 };
 
 /*
@@ -51,6 +54,8 @@ static inline struct thread_info *current_thread_info(void)
 }
 
 register unsigned long current_stack_pointer __asm__("$r3");
+
+#define ti_local_flags(__ti)	((__ti)->local_flags)
 
 #endif /* !__ASSEMBLY__ */
 
@@ -104,7 +109,9 @@ register unsigned long current_stack_pointer __asm__("$r3");
 #define TIF_PATCH_PENDING       22      /* pending live patching update */
 #define TIF_USEDLBT             23      /* LBT has been used */
 #define TIF_LBT_CTX_LIVE        24      /* LBT context */
-#define TIF_SINGLESTEP          25
+#define TIF_RETUSER		25	/* INBAND_TASK_RETUSER is pending */
+#define TIF_MAYDAY		26	/* Emergency trap pending */
+#define TIF_SINGLESTEP          27
 
 #define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
 #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
@@ -127,6 +134,8 @@ register unsigned long current_stack_pointer __asm__("$r3");
 #define _TIF_LASX_CTX_LIVE      (1<<TIF_LASX_CTX_LIVE)
 #define _TIF_USEDLBT            (1<<TIF_USEDLBT)
 #define _TIF_LBT_CTX_LIVE       (1<<TIF_LBT_CTX_LIVE)
+#define _TIF_RETUSER		(1<<TIF_RETUSER)
+#define _TIF_MAYDAY		(1<<TIF_MAYDAY)
 #define _TIF_SINGLESTEP         (1<<TIF_SINGLESTEP)
 
 #define _TIF_WORK_SYSCALL_ENTRY (_TIF_NOHZ | _TIF_SYSCALL_TRACE | \
@@ -144,6 +153,14 @@ register unsigned long current_stack_pointer __asm__("$r3");
 #define _TIF_ALLWORK_MASK (_TIF_NOHZ | _TIF_WORK_MASK | \
 				_TIF_WORK_SYSCALL_EXIT | \
 				_TIF_SYSCALL_TRACEPOINT)
+
+/*
+ * Local (synchronous) thread flags.
+ */
+#define _TLF_OOB		0x0001
+#define _TLF_DOVETAIL		0x0002
+#define _TLF_OFFSTAGE		0x0004
+#define _TLF_OOBTRAP		0x0008
 
 #endif /* __KERNEL__ */
 #endif /* _ASM_THREAD_INFO_H */

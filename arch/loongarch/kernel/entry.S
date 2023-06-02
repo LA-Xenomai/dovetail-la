@@ -26,17 +26,26 @@
 	.cfi_sections	.debug_frame
 	.align	5
 
+	.macro ret_from_irq_pipelined, tmp
+#ifdef CONFIG_IRQ_PIPELINE
+	LONG_L	\tmp, tp, TI_LOCAL_FLAGS
+	andi	\tmp, \tmp, _TLF_OOB
+	bnez	\tmp, restore_all
+#endif
+	b	__ret_from_irq
+	.endm
+
 #ifndef CONFIG_PREEMPT
 SYM_CODE_START(ret_from_exception)
 	UNWIND_HINT_REGS
 	local_irq_disable                       # preempt stop
-	b       __ret_from_irq
+	ret_from_irq_pipelined t0
 SYM_CODE_END(ret_from_exception)
 #endif
 SYM_CODE_START(ret_from_irq)
 	UNWIND_HINT_REGS
 	LONG_S  s0, tp, TI_REGS
-	b       __ret_from_irq
+	ret_from_irq_pipelined t0
 SYM_CODE_END(ret_from_irq)
 
 SYM_CODE_START(__ret_from_irq)
@@ -181,9 +190,9 @@ restore_partial:                # restore partial frame
 	andi    v0, v0, CSR_PRMD_PIE
 	beqz    v0, 1f
 
-	bl      trace_hardirqs_on
+	bl      trace_hardirqs_on_pipelined
 	b       2f
-1:      bl      trace_hardirqs_off
+1:      bl      trace_hardirqs_off_pipelined
 2:
 	RESTORE_TEMP
 	RESTORE_STATIC
@@ -196,6 +205,11 @@ work_pending:
 	beqz    t0, work_notifysig
 work_resched:
 	TRACE_IRQS_OFF
+#ifdef CONFIG_IRQ_PIPELINE
+	bl	inband_irq_disable
+	dbar	0x0
+	local_irq_enable
+#endif
 	bl      schedule
 
 	local_irq_disable               # make sure need_resched and

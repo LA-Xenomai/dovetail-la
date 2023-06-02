@@ -54,4 +54,6 @@ bool arch_trigger_cpumask_backtrace(const struct cpumask *mask,
 					bool exclude_self);
 #define arch_trigger_cpumask_backtrace arch_trigger_cpumask_backtrace
 
+int handle_arch_irq_pipelined(struct pt_regs *regs);
+
 #endif /* _ASM_IRQ_H */

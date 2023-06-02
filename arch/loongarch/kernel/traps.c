@@ -36,6 +36,7 @@
 #include <asm/break.h>
 #include <asm/cpu.h>
 #include <asm/fpu.h>
+#include <asm/irq.h>
 #include <asm/loongarchregs.h>
 #include <asm/pgtable.h>
 #include <asm/ptrace.h>
@@ -756,7 +757,11 @@ asmlinkage void noinstr do_vint(struct pt_regs *regs, unsigned long sp)
 	cpu = smp_processor_id();
 
 	if (on_irq_stack(cpu, sp))
+#ifdef CONFIG_IRQ_PIPELINE
+		handle_arch_irq_pipelined(regs);
+#else
 		handle_arch_irq(regs);
+#endif
 	else {
 		stack = per_cpu(irq_stack, cpu) + IRQ_STACK_START;
 
@@ -767,8 +772,12 @@ asmlinkage void noinstr do_vint(struct pt_regs *regs, unsigned long sp)
 		"move	$s0, $sp		\n" /* Preserve sp */
 		"move	$sp, %[stk]		\n" /* Switch stack */
 		"move	$a0, %[regs]		\n"
+#ifdef CONFIG_IRQ_PIPELINE
+		"la	$t1, handle_arch_irq_pipelined	\n"
+#else
 		"la	$t0, handle_arch_irq	\n"
 		"ld.d	$t1, $t0, 0		\n"
+#endif
 		"jirl	$ra, $t1, 0		\n"
 		"move	$sp, $s0		\n" /* Restore sp */
 		: /* No outputs */

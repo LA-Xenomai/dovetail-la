@@ -15,6 +15,7 @@
 #include <linux/kallsyms.h>
 #include <linux/kgdb.h>
 #include <linux/ftrace.h>
+#include <linux/irq_pipeline.h>
 
 #include <linux/atomic.h>
 #include <linux/uaccess.h>
@@ -102,3 +103,12 @@ void __irq_entry do_IRQ(unsigned int irq)
 	generic_handle_irq(irq);
 	irq_exit();
 }
+
+
+#ifdef CONFIG_IRQ_PIPELINE
+asmlinkage int 
+handle_arch_irq_pipelined(struct pt_regs *regs)
+{
+	return handle_irq_pipelined(regs);
+}
+#endif
