@@ -194,23 +194,20 @@ static u32 notrace exynos4_read_count_32(void)
 	return readl_relaxed(reg_base + EXYNOS4_MCT_G_CNT_L);
 }
 
-static u64 exynos4_frc_read(struct clocksource *cs)
-{
-	return exynos4_read_count_32();
-}
-
 static void exynos4_frc_resume(struct clocksource *cs)
 {
 	exynos4_mct_frc_start();
 }
 
-static struct clocksource mct_frc = {
-	.name		= "mct-frc",
-	.rating		= 450,	/* use value higher than ARM arch timer */
-	.read		= exynos4_frc_read,
-	.mask		= CLOCKSOURCE_MASK(32),
-	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
-	.resume		= exynos4_frc_resume,
+static struct clocksource_user_mmio mct_frc = {
+	.mmio.clksrc = {
+		.name		= "mct-frc",
+		.rating		= 450,	/* use value higher than ARM arch timer */
+		.read		= clocksource_mmio_readl_up,
+		.mask		= CLOCKSOURCE_MASK(32),
+		.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
+		.resume		= exynos4_frc_resume,
+	},
 };
 
 static u64 notrace exynos4_read_sched_clock(void)
@@ -231,6 +228,8 @@ static cycles_t exynos4_read_current_timer(void)
 
 static int __init exynos4_clocksource_init(void)
 {
+	struct clocksource_mmio_regs mmr;
+
 	exynos4_mct_frc_start();
 
 #if defined(CONFIG_ARM)
@@ -239,8 +238,13 @@ static int __init exynos4_clocksource_init(void)
 	register_current_timer_delay(&exynos4_delay_timer);
 #endif
 
-	if (clocksource_register_hz(&mct_frc, clk_rate))
-		panic("%s: can't register clocksource\n", mct_frc.name);
+	mmr.reg_upper = NULL;
+	mmr.reg_lower = reg_base + EXYNOS4_MCT_G_CNT_L;
+	mmr.bits_upper = 0;
+	mmr.bits_lower = 32;
+	mmr.revmap = NULL;
+	if (clocksource_user_mmio_init(&mct_frc, &mmr, clk_rate))
+		panic("%s: can't register clocksource\n", mct_frc.mmio.clksrc.name);
 
 	sched_clock_register(exynos4_read_sched_clock, 32, clk_rate);
 
@@ -308,7 +312,8 @@ static int mct_set_state_periodic(struct clock_event_device *evt)
 static struct clock_event_device mct_comp_device = {
 	.name			= "mct-comp",
 	.features		= CLOCK_EVT_FEAT_PERIODIC |
-				  CLOCK_EVT_FEAT_ONESHOT,
+				  CLOCK_EVT_FEAT_ONESHOT |
+				  CLOCK_EVT_FEAT_PIPELINE,
 	.rating			= 250,
 	.set_next_event		= exynos4_comp_set_next_event,
 	.set_state_periodic	= mct_set_state_periodic,
@@ -324,7 +329,7 @@ static irqreturn_t exynos4_mct_comp_isr(int irq, void *dev_id)
 
 	exynos4_mct_write(0x1, EXYNOS4_MCT_G_INT_CSTAT);
 
-	evt->event_handler(evt);
+	clockevents_handle_event(evt);
 
 	return IRQ_HANDLED;
 }
@@ -434,7 +439,7 @@ static irqreturn_t exynos4_mct_tick_isr(int irq, void *dev_id)
 
 	exynos4_mct_tick_clear(mevt);
 
-	evt->event_handler(evt);
+	clockevents_handle_event(evt);
 
 	return IRQ_HANDLED;
 }
@@ -456,7 +461,8 @@ static int exynos4_mct_starting_cpu(unsigned int cpu)
 	evt->set_state_oneshot = set_state_shutdown;
 	evt->set_state_oneshot_stopped = set_state_shutdown;
 	evt->tick_resume = set_state_shutdown;
-	evt->features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT;
+	evt->features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT | \
+		CLOCK_EVT_FEAT_PIPELINE;
 	evt->rating = 500;	/* use value higher than ARM arch timer */
 
 	exynos4_mct_write(TICK_BASE_CNT, mevt->base + MCT_L_TCNTB_OFFSET);
@@ -515,9 +521,9 @@ static int __init exynos4_timer_resources(struct device_node *np, void __iomem *
 
 	if (mct_int_type == MCT_INT_PPI) {
 
-		err = request_percpu_irq(mct_irqs[MCT_L0_IRQ],
-					 exynos4_mct_tick_isr, "MCT",
-					 &percpu_mct_tick);
+		err = __request_percpu_irq(mct_irqs[MCT_L0_IRQ],
+					exynos4_mct_tick_isr, IRQF_TIMER,
+					"MCT", &percpu_mct_tick);
 		WARN(err, "MCT: can't request IRQ %d (%d)\n",
 		     mct_irqs[MCT_L0_IRQ], err);
 	} else {

@@ -15,6 +15,7 @@
 #include <linux/sched/hotplug.h>
 #include <linux/mm_types.h>
 #include <linux/pgtable.h>
+#include <linux/irq_pipeline.h>
 
 #include <asm/cacheflush.h>
 #include <asm/cpufeature.h>
@@ -115,6 +116,9 @@ static inline void __cpu_set_tcr_t0sz(unsigned long t0sz)
 static inline void cpu_uninstall_idmap(void)
 {
 	struct mm_struct *mm = current->active_mm;
+	unsigned long flags;
+
+	flags = hard_cond_local_irq_save();
 
 	cpu_set_reserved_ttbr0();
 	local_flush_tlb_all();
@@ -122,15 +126,23 @@ static inline void cpu_uninstall_idmap(void)
 
 	if (mm != &init_mm && !system_uses_ttbr0_pan())
 		cpu_switch_mm(mm->pgd, mm);
+
+	hard_cond_local_irq_restore(flags);
 }
 
 static inline void cpu_install_idmap(void)
 {
+	unsigned long flags;
+
+	flags = hard_cond_local_irq_save();
+
 	cpu_set_reserved_ttbr0();
 	local_flush_tlb_all();
 	cpu_set_idmap_tcr_t0sz();
 
 	cpu_switch_mm(lm_alias(idmap_pg_dir), &init_mm);
+
+	hard_cond_local_irq_restore(flags);
 }
 
 /*
@@ -233,7 +245,7 @@ static inline void __switch_mm(struct mm_struct *next)
 }
 
 static inline void
-switch_mm(struct mm_struct *prev, struct mm_struct *next,
+do_switch_mm(struct mm_struct *prev, struct mm_struct *next,
 	  struct task_struct *tsk)
 {
 	if (prev != next)
@@ -248,8 +260,26 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
 	update_saved_ttbr0(tsk, next);
 }
 
+static inline void
+switch_mm(struct mm_struct *prev, struct mm_struct *next,
+	  struct task_struct *tsk)
+{
+	unsigned long flags;
+
+	protect_inband_mm(flags);
+	do_switch_mm(prev, next, tsk);
+	unprotect_inband_mm(flags);
+}
+
 #define deactivate_mm(tsk,mm)	do { } while (0)
-#define activate_mm(prev,next)	switch_mm(prev, next, current)
+#define activate_mm(prev,next)	do_switch_mm(prev, next, current)
+
+static inline void
+switch_oob_mm(struct mm_struct *prev, struct mm_struct *next,
+	      struct task_struct *tsk)
+{
+	do_switch_mm(prev, next, tsk);
+}
 
 void verify_cpu_asid_bits(void);
 void post_ttbr_update_workaround(void);
