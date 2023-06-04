@@ -197,7 +197,8 @@ static struct irq_chip ls2k500_iointc = {
 	.irq_set_affinity = ls2k500_iointc_set_affinity,
 	.irq_ack	= ls2k500_iointc_irq_ack,
 	.irq_set_type = ls2k500_iointc_set_type,
-	.flags = IRQCHIP_SKIP_SET_WAKE,
+	.flags = IRQCHIP_SKIP_SET_WAKE |
+		 IRQCHIP_PIPELINE_SAFE,
 };
 
 static void ls2k500_iointc_irq_handler(struct irq_desc *desc)

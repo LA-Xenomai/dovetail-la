@@ -29,6 +29,7 @@ static struct irq_chip cpu_irq_controller = {
 	.name		= "LoongArch",
 	.irq_mask	= mask_loongarch_irq,
 	.irq_unmask	= unmask_loongarch_irq,
+	.flags		= IRQCHIP_PIPELINE_SAFE,
 };
 
 static void handle_cpu_irq(struct pt_regs *regs)
