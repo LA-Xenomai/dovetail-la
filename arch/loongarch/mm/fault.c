@@ -258,6 +258,7 @@ asmlinkage void __kprobes do_page_fault(struct pt_regs *regs,
 {
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	/* Enable interrupt if enabled in parent context */
 	if (likely(regs->csr_prmd & CSR_PRMD_PIE))
 		local_irq_enable();
@@ -266,5 +267,6 @@ asmlinkage void __kprobes do_page_fault(struct pt_regs *regs,
 
 	local_irq_disable();
 
+	oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	irqentry_exit(regs, state);
 }

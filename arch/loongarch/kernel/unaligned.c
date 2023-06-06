@@ -402,12 +402,14 @@ asmlinkage void noinstr do_ade(struct pt_regs *regs)
 {
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_ADE, regs);
 	if (unaligned_action == UNALIGNED_ACTION_SHOW)
 		show_registers(regs);
 
 	die_if_kernel("Kernel ade access", regs);
 	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)regs->csr_badvaddr);
 
+	oob_trap_unwind(LOONGARCH64_TRAP_ADE, regs);
 	irqentry_exit(regs, state);
 }
 
@@ -416,6 +418,7 @@ asmlinkage void noinstr do_ale(struct pt_regs *regs)
 	unsigned int *pc;
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_ALE, regs);
 	perf_sw_event(PERF_COUNT_SW_ALIGNMENT_FAULTS,
 			1, regs, regs->csr_badvaddr);
 	/*
@@ -442,6 +445,7 @@ sigbus:
 	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *)regs->csr_badvaddr);
 
 out:
+	oob_trap_unwind(LOONGARCH64_TRAP_ALE, regs);
 	irqentry_exit(regs, state);
 }
 

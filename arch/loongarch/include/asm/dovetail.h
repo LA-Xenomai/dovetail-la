@@ -7,18 +7,19 @@
 #ifndef _ASM_LOONGARCH64_DOVETAIL_H
 #define _ASM_LOONGARCH64_DOVETAIL_H
 
-// #include <asm/fpsimd.h>
-
-/* ARM64 traps */
-#define ARM64_TRAP_ACCESS	0	/* Data or instruction access exception */
-#define ARM64_TRAP_ALIGN	1	/* SP/PC alignment abort */
-#define ARM64_TRAP_SEA		2	/* Synchronous external abort */
-#define ARM64_TRAP_DEBUG	3	/* Debug trap */
-#define ARM64_TRAP_UNDI		4	/* Undefined instruction */
-#define ARM64_TRAP_UNDSE	5	/* Undefined synchronous exception */
-#define ARM64_TRAP_FPE		6	/* FPSIMD exception */
-#define ARM64_TRAP_SVE		7	/* SVE access trap */
-#define ARM64_TRAP_BTI		8	/* Branch target identification */
+/* LOONGARCH64 traps */
+#define LOONGARCH64_TRAP_FPE		0	/* Delayed fp exception */
+#define LOONGARCH64_TRAP_BP		1	/* Break point */
+#define LOONGARCH64_TRAP_WATCH		2	/* Watch point */
+#define LOONGARCH64_TRAP_RI		3	/* Reserved instruction */
+#define LOONGARCH64_TRAP_FPU		4	/* FPU access */
+#define LOONGARCH64_TRAP_LSX		5	/* LAX access */
+#define LOONGARCH64_TRAP_LASX		6	/* LASX access */
+#define LOONGARCH64_TRAP_LBT		7	/* LBT access */
+#define LOONGARCH64_TRAP_RESERVED	8	/* Reserved exception */
+#define LOONGARCH64_TRAP_ADE		9	/* Unaligned data access */
+#define LOONGARCH64_TRAP_ALE		10	/* Unaligned instruction access */
+#define LOONGARCH64_TRAP_PAGEFAULT	11	/* Page fault */
 
 #ifdef CONFIG_DOVETAIL
 
@@ -29,9 +30,7 @@ static inline void arch_dovetail_switch_prepare(bool leave_inband)
 { }
 
 static inline void arch_dovetail_switch_finish(bool enter_inband)
-{
-	// fpsimd_restore_current_oob();
-}
+{ }
 
 #endif
 

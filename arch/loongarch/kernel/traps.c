@@ -3,6 +3,7 @@
  * Author: Huacai Chen <chenhuacai@loongson.cn>
  * Copyright (C) 2020 Loongson Technology Corporation Limited
  */
+#include "linux/dovetail.h"
 #include <linux/bitops.h>
 #include <linux/bug.h>
 #include <linux/compiler.h>
@@ -370,6 +371,7 @@ asmlinkage void noinstr do_fpe(struct pt_regs *regs, unsigned long fcsr)
 	void __user *fault_addr;
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_FPE, regs);
 	if (notify_die(DIE_FP, "FP exception", regs, 0, current->thread.trap_nr,
 		       SIGFPE) == NOTIFY_STOP)
 		goto out;
@@ -388,6 +390,7 @@ asmlinkage void noinstr do_fpe(struct pt_regs *regs, unsigned long fcsr)
 
 out:
 	local_irq_disable();
+	oob_trap_unwind(LOONGARCH64_TRAP_FPE, regs);
 	irqentry_exit(regs, state);
 }
 
@@ -398,6 +401,7 @@ asmlinkage void noinstr do_bp(struct pt_regs *regs)
 	unsigned long era = exception_era(regs);
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_BP, regs);
 	local_irq_enable();
 	current->thread.trap_nr = read_csr_excode();
 	if (__get_inst(&opcode, (u32 *)era, user))
@@ -469,6 +473,7 @@ asmlinkage void noinstr do_bp(struct pt_regs *regs)
 
 out:
 	local_irq_disable();
+	oob_trap_unwind(LOONGARCH64_TRAP_BP, regs);
 	irqentry_exit(regs, state);
 	return;
 
@@ -491,6 +496,7 @@ asmlinkage void noinstr do_watch(struct pt_regs *regs)
 {
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_WATCH, regs);
 	if (test_tsk_thread_flag(current, TIF_LOAD_WATCH)) {
 		if (current->thread.single_step) {
 			int llbit = (csr_readq(LOONGARCH_CSR_LLBCTL) & 0x1);
@@ -514,6 +520,7 @@ asmlinkage void noinstr do_watch(struct pt_regs *regs)
 			loongarch_clear_watch_registers();
 	}
 
+	oob_trap_unwind(LOONGARCH64_TRAP_WATCH, regs);
 	irqentry_exit(regs, state);
 }
 
@@ -526,6 +533,7 @@ asmlinkage void noinstr do_ri(struct pt_regs *regs)
 	unsigned long old_ra = regs->regs[1];
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_RI, regs);
 	local_irq_enable();
 	current->thread.trap_nr = read_csr_excode();
 
@@ -554,6 +562,7 @@ asmlinkage void noinstr do_ri(struct pt_regs *regs)
 
 out:
 	local_irq_disable();
+	oob_trap_unwind(LOONGARCH64_TRAP_RI, regs);
 	irqentry_exit(regs, state);
 }
 
@@ -629,6 +638,7 @@ asmlinkage void noinstr do_fpu(struct pt_regs *regs)
 {
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_FPU, regs);
 	local_irq_enable();
 	die_if_kernel("do_fpu invoked from kernel context!", regs);
 	BUG_ON(is_lsx_enabled());
@@ -639,6 +649,7 @@ asmlinkage void noinstr do_fpu(struct pt_regs *regs)
 	preempt_enable();
 
 	local_irq_disable();
+	oob_trap_unwind(LOONGARCH64_TRAP_FPU, regs);
 	irqentry_exit(regs, state);
 }
 
@@ -646,6 +657,7 @@ asmlinkage void noinstr do_lsx(struct pt_regs *regs)
 {
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_LSX, regs);
 	local_irq_enable();
 	if (!cpu_has_lsx) {
 		force_sig(SIGILL);
@@ -661,6 +673,7 @@ asmlinkage void noinstr do_lsx(struct pt_regs *regs)
 
 out:
 	local_irq_disable();
+	oob_trap_unwind(LOONGARCH64_TRAP_LSX, regs);
 	irqentry_exit(regs, state);
 }
 
@@ -668,6 +681,7 @@ asmlinkage void noinstr do_lasx(struct pt_regs *regs)
 {
 	irqentry_state_t state = irqentry_enter(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_LASX, regs);
 	local_irq_enable();
 	if (!cpu_has_lasx) {
 		force_sig(SIGILL);
@@ -682,15 +696,18 @@ asmlinkage void noinstr do_lasx(struct pt_regs *regs)
 
 out:
 	local_irq_disable();
+	oob_trap_unwind(LOONGARCH64_TRAP_LASX, regs);
 	irqentry_exit(regs, state);
 }
 
 asmlinkage void noinstr do_lbt(struct pt_regs *regs)
 {
 	irqentry_state_t state = irqentry_enter(regs);
+	oob_trap_notify(LOONGARCH64_TRAP_LBT, regs);
 	local_irq_enable();
 	force_sig(SIGILL);
 	local_irq_disable();
+	oob_trap_unwind(LOONGARCH64_TRAP_LBT, regs);
 	irqentry_exit(regs, state);
 }
 
@@ -702,10 +719,12 @@ asmlinkage void noinstr do_reserved(struct pt_regs *regs)
 	 * caused by a new unknown cpu type or after another deadly
 	 * hard/software error.
 	 */
+	oob_trap_notify(LOONGARCH64_TRAP_RESERVED, regs);
 	local_irq_enable();
 	show_regs(regs);
 	panic("Caught reserved exception %u - should not happen.", read_csr_excode());
 	local_irq_disable();
+	oob_trap_unwind(LOONGARCH64_TRAP_RESERVED, regs);
 	irqentry_exit(regs, state);
 }
 
