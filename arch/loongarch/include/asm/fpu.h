@@ -120,9 +120,18 @@ static inline void own_fpu_inatomic(int restore)
 
 static inline void own_fpu(int restore)
 {
+#ifdef CONFIG_DOVETAIL
+	unsigned long __flags;
+	__flags = hard_preempt_disable();
+#else
 	preempt_disable();
+#endif
 	own_fpu_inatomic(restore);
+#ifdef CONFIG_DOVETAIL
+	hard_preempt_enable(__flags);
+#else
 	preempt_enable();
+#endif
 }
 
 static inline void lose_fpu_inatomic(int save, struct task_struct *tsk)
@@ -151,9 +160,18 @@ static inline void lose_fpu_inatomic(int save, struct task_struct *tsk)
 
 static inline void lose_fpu(int save)
 {
+#ifdef CONFIG_DOVETAIL
+	unsigned long __flags;
+	__flags = hard_preempt_disable();
+#else
 	preempt_disable();
+#endif
 	lose_fpu_inatomic(save, current);
+#ifdef CONFIG_DOVETAIL
+	hard_preempt_enable(__flags);
+#else
 	preempt_enable();
+#endif
 }
 
 static inline void init_fpu(void)
@@ -180,10 +198,19 @@ static inline void restore_fp(struct task_struct *tsk)
 static inline union fpureg *get_fpu_regs(struct task_struct *tsk)
 {
 	if (tsk == current) {
+#ifdef CONFIG_DOVETAIL
+		unsigned long __flags;
+		__flags = hard_preempt_disable();
+#else
 		preempt_disable();
+#endif
 		if (is_fpu_owner())
 			_save_fp(&current->thread.fpu);
+#ifdef CONFIG_DOVETAIL
+		hard_preempt_enable(__flags);
+#else
 		preempt_enable();
+#endif
 	}
 
 	return tsk->thread.fpu.fpr;

@@ -170,7 +170,7 @@ int constant_clockevent_init(void)
 
 	sync_counter();
 
-	if (request_irq(irq, constant_timer_interrupt, IRQF_PERCPU | IRQF_TIMER, "timer", NULL))
+	if (request_irq(irq, constant_timer_interrupt, IRQF_PERCPU | IRQF_TIMER | IRQF_OOB, "timer", NULL))
 		pr_err("Failed to request irq %d (timer)\n", irq);
 
 	lpj_fine = get_loops_per_jiffy();
