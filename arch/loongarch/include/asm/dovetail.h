@@ -32,6 +32,9 @@ static inline void arch_dovetail_switch_prepare(bool leave_inband)
 static inline void arch_dovetail_switch_finish(bool enter_inband)
 { }
 
+#define arch_dovetail_is_syscall(__nr)	\
+	((__nr) == __NR_prctl)
+
 #endif
 
 #endif /* _ASM_LOONGARCH64_DOVETAIL_H */
