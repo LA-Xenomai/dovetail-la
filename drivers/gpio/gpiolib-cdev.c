@@ -25,6 +25,7 @@
 #include <linux/uaccess.h>
 #include <linux/workqueue.h>
 #include <uapi/linux/gpio.h>
+#include <evl/devices/gpio.h>
 
 #include "gpiolib.h"
 #include "gpiolib-cdev.h"
