@@ -767,6 +767,31 @@ asmlinkage void cache_parity_error(void)
 	panic("Can't handle the cache error!");
 }
 
+#ifdef CONFIG_DOVETAIL
+DEFINE_PER_CPU(int, irq_nesting);
+
+static inline bool irq_nest_enter(int cpu)
+{
+	int *nesting;
+	int ret;
+
+	nesting = per_cpu_ptr(&irq_nesting, cpu);
+	ret = *nesting > 0 ? true : false;
+	*nesting += 1;
+
+	return ret;
+}
+
+static inline void irq_nest_exit(int cpu)
+{
+	int *nesting = per_cpu_ptr(&irq_nesting, cpu);
+	*nesting -= 1;
+}
+#else
+#define irq_nest_enter(cpu)
+#define irq_nest_exit(cpu)
+#endif
+
 asmlinkage void noinstr do_vint(struct pt_regs *regs, unsigned long sp)
 {
 	register int cpu;
@@ -775,7 +800,7 @@ asmlinkage void noinstr do_vint(struct pt_regs *regs, unsigned long sp)
 
 	cpu = smp_processor_id();
 
-	if (on_irq_stack(cpu, sp))
+	if (irq_nest_enter(cpu) || on_irq_stack(cpu, sp))
 #ifdef CONFIG_IRQ_PIPELINE
 		handle_arch_irq_pipelined(regs);
 #else
@@ -806,6 +831,7 @@ asmlinkage void noinstr do_vint(struct pt_regs *regs, unsigned long sp)
 		  "memory");
 	}
 
+	irq_nest_exit(cpu);
 	irqentry_exit(regs, state);
 }
 
