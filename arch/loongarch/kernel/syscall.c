@@ -48,6 +48,8 @@ void noinstr do_syscall(struct pt_regs *regs)
 	/* Set for syscall restarting */
 	if (nr < NR_syscalls)
 		regs->regs[0] = nr + 1;
+	if (arch_dovetail_is_syscall(nr) && (regs->regs[4] & __OOB_SYSCALL_BIT))
+		nr = regs->regs[4];
 
 	regs->csr_era += 4;
 	regs->orig_a0 = regs->regs[4];
@@ -55,11 +57,20 @@ void noinstr do_syscall(struct pt_regs *regs)
 
 	nr = syscall_enter_from_user_mode(regs, nr);
 
+	if (nr == EXIT_SYSCALL_OOB)
+		goto out;
+	
+	if (nr == EXIT_SYSCALL_TAIL)
+		goto tail_work;
+
 	if (nr < NR_syscalls) {
 		syscall_fn = sys_call_table[nr];
 		regs->regs[4] = syscall_fn(regs->orig_a0, regs->regs[5], regs->regs[6],
 					   regs->regs[7], regs->regs[8], regs->regs[9]);
 	}
 
+tail_work:
 	syscall_exit_to_user_mode(regs);
+out:
+	return;
 }
