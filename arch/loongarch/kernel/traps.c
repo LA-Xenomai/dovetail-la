@@ -3,7 +3,6 @@
  * Author: Huacai Chen <chenhuacai@loongson.cn>
  * Copyright (C) 2020 Loongson Technology Corporation Limited
  */
-#include "linux/dovetail.h"
 #include <linux/bitops.h>
 #include <linux/bug.h>
 #include <linux/compiler.h>
@@ -378,7 +377,7 @@ asmlinkage void noinstr do_fpe(struct pt_regs *regs, unsigned long fcsr)
 
 	/* Clear FCSR.Cause before enabling interrupts */
 	write_fcsr(LOONGARCH_FCSR0, fcsr & ~mask_fcsr_x(fcsr));
-	local_irq_enable();
+	hard_local_irq_enable();
 
 	die_if_kernel("FP exception in kernel code", regs);
 
@@ -389,7 +388,7 @@ asmlinkage void noinstr do_fpe(struct pt_regs *regs, unsigned long fcsr)
 	process_fpemu_return(sig, fault_addr, fcsr);
 
 out:
-	local_irq_disable();
+	hard_local_irq_disable();
 	oob_trap_unwind(LOONGARCH64_TRAP_FPE, regs);
 	irqentry_exit(regs, state);
 }
@@ -472,7 +471,7 @@ asmlinkage void noinstr do_bp(struct pt_regs *regs)
 	}
 
 out:
-	local_irq_disable();
+	hard_local_irq_disable();
 	oob_trap_unwind(LOONGARCH64_TRAP_BP, regs);
 	irqentry_exit(regs, state);
 	return;
@@ -561,7 +560,7 @@ asmlinkage void noinstr do_ri(struct pt_regs *regs)
 	}
 
 out:
-	local_irq_disable();
+	hard_local_irq_disable();
 	oob_trap_unwind(LOONGARCH64_TRAP_RI, regs);
 	irqentry_exit(regs, state);
 }
@@ -579,6 +578,19 @@ static void init_restore_fp(void)
 
 	BUG_ON(!is_fp_enabled());
 }
+
+#ifdef CONFIG_DOVETAIL
+void restore_fp_current_oob(void)
+{
+	unsigned long __flags;
+	
+	if (current->mm && used_math() && !is_fpu_owner()) {
+		__flags = hard_preempt_disable();
+		own_fpu_inatomic(1);
+		hard_preempt_enable(__flags);
+	}
+}
+#endif
 
 static void init_restore_lsx(void)
 {
@@ -637,6 +649,7 @@ static void init_restore_lasx(void)
 asmlinkage void noinstr do_fpu(struct pt_regs *regs)
 {
 	irqentry_state_t state = irqentry_enter(regs);
+	unsigned long flags;
 
 	oob_trap_notify(LOONGARCH64_TRAP_FPU, regs);
 	local_irq_enable();
@@ -644,11 +657,11 @@ asmlinkage void noinstr do_fpu(struct pt_regs *regs)
 	BUG_ON(is_lsx_enabled());
 	BUG_ON(is_lasx_enabled());
 
-	preempt_disable();
+	flags = hard_preempt_disable();
 	init_restore_fp();
-	preempt_enable();
+	hard_preempt_enable(flags);
 
-	local_irq_disable();
+	hard_local_irq_disable();
 	oob_trap_unwind(LOONGARCH64_TRAP_FPU, regs);
 	irqentry_exit(regs, state);
 }
@@ -672,7 +685,7 @@ asmlinkage void noinstr do_lsx(struct pt_regs *regs)
 	preempt_enable();
 
 out:
-	local_irq_disable();
+	hard_local_irq_disable();
 	oob_trap_unwind(LOONGARCH64_TRAP_LSX, regs);
 	irqentry_exit(regs, state);
 }
@@ -695,7 +708,7 @@ asmlinkage void noinstr do_lasx(struct pt_regs *regs)
 	preempt_enable();
 
 out:
-	local_irq_disable();
+	hard_local_irq_disable();
 	oob_trap_unwind(LOONGARCH64_TRAP_LASX, regs);
 	irqentry_exit(regs, state);
 }
@@ -706,7 +719,7 @@ asmlinkage void noinstr do_lbt(struct pt_regs *regs)
 	oob_trap_notify(LOONGARCH64_TRAP_LBT, regs);
 	local_irq_enable();
 	force_sig(SIGILL);
-	local_irq_disable();
+	hard_local_irq_disable();
 	oob_trap_unwind(LOONGARCH64_TRAP_LBT, regs);
 	irqentry_exit(regs, state);
 }
@@ -723,7 +736,7 @@ asmlinkage void noinstr do_reserved(struct pt_regs *regs)
 	local_irq_enable();
 	show_regs(regs);
 	panic("Caught reserved exception %u - should not happen.", read_csr_excode());
-	local_irq_disable();
+	hard_local_irq_disable();
 	oob_trap_unwind(LOONGARCH64_TRAP_RESERVED, regs);
 	irqentry_exit(regs, state);
 }

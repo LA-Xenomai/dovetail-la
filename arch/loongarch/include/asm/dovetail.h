@@ -17,8 +17,8 @@
 #define LOONGARCH64_TRAP_LASX		6	/* LASX access */
 #define LOONGARCH64_TRAP_LBT		7	/* LBT access */
 #define LOONGARCH64_TRAP_RESERVED	8	/* Reserved exception */
-#define LOONGARCH64_TRAP_ADE		9	/* Unaligned data access */
-#define LOONGARCH64_TRAP_ALE		10	/* Unaligned instruction access */
+#define LOONGARCH64_TRAP_ADE		9	/* Wrong memeory address access */
+#define LOONGARCH64_TRAP_ALE		10	/* Unaligned memeory address access */
 #define LOONGARCH64_TRAP_PAGEFAULT	11	/* Page fault */
 
 #ifdef CONFIG_DOVETAIL
@@ -30,7 +30,10 @@ static inline void arch_dovetail_switch_prepare(bool leave_inband)
 { }
 
 static inline void arch_dovetail_switch_finish(bool enter_inband)
-{ }
+{
+	extern void restore_fp_current_oob(void);
+	restore_fp_current_oob();
+}
 
 #define arch_dovetail_is_syscall(__nr)	\
 	((__nr) == __NR_prctl)

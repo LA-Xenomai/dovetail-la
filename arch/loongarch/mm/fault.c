@@ -35,6 +35,7 @@ static void __kprobes no_context(struct pt_regs *regs, unsigned long address)
 	const int field = sizeof(unsigned long) * 2;
 
 	/* Are we prepared to handle this kernel fault?	 */
+	oob_trap_notify(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	if (fixup_exception(regs))
 		return;
 
@@ -49,6 +50,7 @@ static void __kprobes no_context(struct pt_regs *regs, unsigned long address)
 	       raw_smp_processor_id(), field, address, field, regs->csr_era,
 	       field,  regs->regs[1]);
 	die("Oops", regs);
+	oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 }
 
 static void __kprobes do_out_of_memory(struct pt_regs *regs, unsigned long address)
@@ -61,7 +63,9 @@ static void __kprobes do_out_of_memory(struct pt_regs *regs, unsigned long addre
 		no_context(regs, address);
 		return;
 	}
+	oob_trap_notify(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	pagefault_out_of_memory();
+	oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 }
 
 static void __kprobes do_sigbus(struct pt_regs *regs,
@@ -77,9 +81,11 @@ static void __kprobes do_sigbus(struct pt_regs *regs,
 	 * Send a sigbus, regardless of whether we were in kernel
 	 * or user mode.
 	 */
+	oob_trap_notify(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	current->thread.csr_badvaddr = address;
 	current->thread.trap_nr = read_csr_excode();
 	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address);
+	oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 }
 
 static void __kprobes do_sigsegv(struct pt_regs *regs,
@@ -95,6 +101,7 @@ static void __kprobes do_sigsegv(struct pt_regs *regs,
 	}
 
 	/* User mode accesses just cause a SIGSEGV */
+	oob_trap_notify(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	current->thread.csr_badvaddr = address;
 	if (!write)
 		current->thread.error_code = 1;
@@ -118,6 +125,7 @@ static void __kprobes do_sigsegv(struct pt_regs *regs,
 		pr_cont("\n");
 	}
 	force_sig_fault(SIGSEGV, si_code, (void __user *)address);
+	oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 }
 
 /*
@@ -173,6 +181,7 @@ static void __kprobes __do_page_fault(struct pt_regs *regs,
 	if (user_mode(regs))
 		flags |= FAULT_FLAG_USER;
 
+	oob_trap_notify(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
 retry:
 	mmap_read_lock(mm);
@@ -191,6 +200,7 @@ retry:
  */
 bad_area:
 	mmap_read_unlock(mm);
+	oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	do_sigsegv(regs, write, address, si_code);
 	return;
 
@@ -220,8 +230,10 @@ good_area:
 	fault = handle_mm_fault(vma, address, flags, regs);
 
 	if (fault_signal_pending(fault, regs)) {
-		if (!user_mode(regs))
+		if (!user_mode(regs)) {
+			oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 			no_context(regs, address);
+		}
 		return;
 	}
 
@@ -238,12 +250,15 @@ good_area:
 	if (unlikely(fault & VM_FAULT_ERROR)) {
 		mmap_read_unlock(mm);
 		if (fault & VM_FAULT_OOM) {
+			oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 			do_out_of_memory(regs, address);
 			return;
 		} else if (fault & VM_FAULT_SIGSEGV) {
+			oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 			do_sigsegv(regs, write, address, si_code);
 			return;
 		} else if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE)) {
+			oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 			do_sigbus(regs, write, address, si_code);
 			return;
 		}
@@ -251,6 +266,7 @@ good_area:
 	}
 
 	mmap_read_unlock(mm);
+	oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 }
 
 asmlinkage void __kprobes do_page_fault(struct pt_regs *regs,
@@ -258,15 +274,13 @@ asmlinkage void __kprobes do_page_fault(struct pt_regs *regs,
 {
 	irqentry_state_t state = irqentry_enter(regs);
 
-	oob_trap_notify(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	/* Enable interrupt if enabled in parent context */
 	if (likely(regs->csr_prmd & CSR_PRMD_PIE))
-		local_irq_enable();
+		hard_local_irq_enable();
 
 	__do_page_fault(regs, write, address);
 
-	local_irq_disable();
+	hard_local_irq_disable();
 
-	oob_trap_unwind(LOONGARCH64_TRAP_PAGEFAULT, regs);
 	irqentry_exit(regs, state);
 }

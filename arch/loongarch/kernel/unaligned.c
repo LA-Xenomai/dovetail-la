@@ -379,6 +379,7 @@ static void emulate_load_store_insn(struct pt_regs *regs, void __user *addr, uns
 	return;
 
 fault:
+	oob_trap_notify(LOONGARCH64_TRAP_ALE, regs);
 	/* roll back jump/branch */
 	regs->csr_era = origpc;
 	regs->regs[1] = origra;
@@ -388,12 +389,15 @@ fault:
 
 	die_if_kernel("Unhandled kernel unaligned access", regs);
 	force_sig(SIGSEGV);
+	oob_trap_notify(LOONGARCH64_TRAP_ALE, regs);
 
 	return;
 
 sigbus:
+	oob_trap_notify(LOONGARCH64_TRAP_ALE, regs);
 	die_if_kernel("Unhandled kernel unaligned access", regs);
 	force_sig(SIGBUS);
+	oob_trap_notify(LOONGARCH64_TRAP_ALE, regs);
 
 	return;
 }
@@ -402,14 +406,14 @@ asmlinkage void noinstr do_ade(struct pt_regs *regs)
 {
 	irqentry_state_t state = irqentry_enter(regs);
 
-	oob_trap_notify(LOONGARCH64_TRAP_ADE, regs);
 	if (unaligned_action == UNALIGNED_ACTION_SHOW)
 		show_registers(regs);
 
+	oob_trap_notify(LOONGARCH64_TRAP_ADE, regs);
 	die_if_kernel("Kernel ade access", regs);
 	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)regs->csr_badvaddr);
-
 	oob_trap_unwind(LOONGARCH64_TRAP_ADE, regs);
+
 	irqentry_exit(regs, state);
 }
 
@@ -418,7 +422,6 @@ asmlinkage void noinstr do_ale(struct pt_regs *regs)
 	unsigned int *pc;
 	irqentry_state_t state = irqentry_enter(regs);
 
-	oob_trap_notify(LOONGARCH64_TRAP_ALE, regs);
 	perf_sw_event(PERF_COUNT_SW_ALIGNMENT_FAULTS,
 			1, regs, regs->csr_badvaddr);
 	/*
@@ -441,11 +444,12 @@ asmlinkage void noinstr do_ale(struct pt_regs *regs)
 	goto out;
 
 sigbus:
+	oob_trap_notify(LOONGARCH64_TRAP_ALE, regs);
 	die_if_kernel("Kernel unaligned instruction access", regs);
 	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *)regs->csr_badvaddr);
+	oob_trap_unwind(LOONGARCH64_TRAP_ALE, regs);
 
 out:
-	oob_trap_unwind(LOONGARCH64_TRAP_ALE, regs);
 	irqentry_exit(regs, state);
 }
 
